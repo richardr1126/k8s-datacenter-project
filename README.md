@@ -2,6 +2,8 @@
 
 This project consists of a complete data processing pipeline using NATS JetStream for messaging between microservices, with support for both local Docker Compose deployment and cloud-native Kubernetes deployment on Google Kubernetes Engine (GKE).
 
+> **Note:** This repository uses Git submodules. Clone with `git clone --recurse-submodules https://github.com/richardr1126/k8s-datacenter-project.git` or run `git submodule update --init --recursive` if already cloned. See [Submodule Repositories](#submodule-repositories) below for links to individual service repositories.
+
 ## Architecture
 
 <img src="architecture.excalidraw.png" alt="Architecture Diagram" width="400" />
@@ -22,6 +24,13 @@ The project includes a cost-optimized GKE cluster manager for production deploym
 3. **NATS Stream Processor**: Processes messages with sentiment analysis
 4. **Mock Ingest**: Generates test data for development
 5. **Sentiment Web UI**: Real-time visualization dashboard (Next.js)
+
+## Submodule Repositories
+
+- [**bsky-sentiment-web**](https://github.com/richardr1126/bsky-sentiment-web) - Real-time visualization dashboard (Next.js)
+- [**gke-cluster**](https://github.com/richardr1126/gke-cluster) - GKE cluster management and Helm charts
+- [**nats-firehose-ingest**](https://github.com/richardr1126/nats-firehose-ingest) - Firehose data ingestion service
+- [**nats-stream-processor**](https://github.com/richardr1126/nats-stream-processor) - Sentiment analysis processor
 
 ---
 
