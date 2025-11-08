@@ -535,14 +535,6 @@ The cluster uses **private nodes** to save on external IP quota:
 
 ---
 
-# ENVIRONMENT VARIABLES
-
-All environment variables are configured in the docker-compose.yml for local development. For production deployments, consider using `.env` files or external configuration management.
-
-For GKE deployments, see the Helm values files in `gke-cluster/helm/*/` directories for service-specific configuration.
-
----
-
 # SECURITY BEST PRACTICES
 
 The GKE cluster includes several security optimizations:
