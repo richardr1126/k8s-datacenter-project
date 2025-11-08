@@ -1,0 +1,12 @@
+[submodule "bsky-sentiment-web"]
+	path = bsky-sentiment-web
+	url = https://github.com/richardr1126/bsky-sentiment-web.git
+[submodule "gke-cluster"]
+	path = gke-cluster
+	url = https://github.com/richardr1126/gke-cluster.git
+[submodule "nats-firehose-ingest"]
+	path = nats-firehose-ingest
+	url = https://github.com/richardr1126/nats-firehose-ingest.git
+[submodule "nats-stream-processor"]
+	path = nats-stream-processor
+	url = https://github.com/richardr1126/nats-stream-processor.git
