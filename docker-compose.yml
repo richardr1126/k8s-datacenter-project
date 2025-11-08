@@ -1,0 +1,129 @@
+services:
+  # NATS Server with JetStream
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-server
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "6222:6222"
+    command: [
+      "--jetstream",
+      "--store_dir=/data"
+    ]
+    volumes:
+      - nats_data:/data
+
+  # NATS Firehose Ingest Service
+  nats-firehose-ingest:
+    build:
+      context: ./nats-firehose-ingest
+      dockerfile: Dockerfile
+    container_name: nats-firehose-ingest
+    depends_on:
+      - nats
+    env_file:
+      - ./nats-firehose-ingest/.env.local
+    environment:
+      NATS_URL: "nats://nats:4222"
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nats-stream-processor-topics:
+    build:
+      context: ./nats-stream-processor-topics
+      dockerfile: Dockerfile
+    container_name: nats-stream-processor-topics
+    depends_on:
+      - nats
+      - nats-firehose-ingest
+    env_file:
+      - ./nats-stream-processor-topics/.env.local
+    environment:
+      NATS_URL: "nats://nats:4222"
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
+    volumes:
+      - model_cache:/app/models
+    deploy:
+      resources:
+        limits:
+          cpus: '12'
+          memory: 12G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 
+
+  # NATS Stream Processor (Sentiment Analysis)
+  nats-stream-processor:
+    build:
+      context: ./nats-stream-processor
+      dockerfile: Dockerfile
+    container_name: nats-stream-processor
+    depends_on:
+      - nats
+      - nats-firehose-ingest
+    env_file:
+      - ./nats-stream-processor/.env.local
+    environment:
+      NATS_URL: "nats://nats:4222"
+    ports:
+      - "8083:8080"
+    restart: unless-stopped
+    volumes:
+      - model_cache:/app/models
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '3'
+    #       memory: 3G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3 
+
+  # Bluesky Sentiment Web UI
+  bsky-sentiment-web:
+    build:
+      context: ./bsky-sentiment-web
+      dockerfile: Dockerfile
+    container_name: bsky-sentiment-web
+    depends_on:
+      - nats
+      - nats-stream-processor
+    env_file:
+      - ./bsky-sentiment-web/.env.local
+    environment:
+      NATS_URL: "nats://nats:4222"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # NATS debugging tool
+  nats-box:
+    image: natsio/nats-box:latest
+    container_name: nats-box
+    depends_on:
+      - nats
+    environment:
+      NATS_URL: "nats://nats:4222"
+    profiles:
+      - tools
+    tty: true
+    stdin_open: true
+
+volumes:
+  nats_data:
+    driver: local
+  model_cache:
+    driver: local
