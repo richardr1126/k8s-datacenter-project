@@ -67,9 +67,12 @@ docker compose --profile mock --profile tools up --build
 - **Firehose Ingest**: `http://localhost:8081`
   - Health: `http://localhost:8081/health`
   - Metrics: `http://localhost:8081/metrics`
-- **Stream Processor**: `http://localhost:8082`
+- **Stream Processor 0**: `http://localhost:8082`
   - Health: `http://localhost:8082/health`
   - Metrics: `http://localhost:8082/metrics`
+- **Stream Processor 1**: `http://localhost:8083`
+  - Health: `http://localhost:8083/health`
+  - Metrics: `http://localhost:8083/metrics`
 - **Sentiment Web UI**: `http://localhost:3000`
 
 ## Local Monitoring and Debugging
@@ -77,13 +80,15 @@ docker compose --profile mock --profile tools up --build
 ### Check service health:
 ```bash
 curl http://localhost:8081/health  # Firehose Ingest
-curl http://localhost:8082/health  # Stream Processor
+curl http://localhost:8082/health  # Stream Processor 0
+curl http://localhost:8083/health  # Stream Processor 1
 ```
 
 ### View metrics:
 ```bash
 curl http://localhost:8081/metrics  # Firehose Ingest metrics
-curl http://localhost:8082/metrics  # Stream Processor metrics
+curl http://localhost:8082/metrics  # Stream Processor 0 metrics
+curl http://localhost:8083/metrics  # Stream Processor 1 metrics
 ```
 
 ### NATS monitoring:
@@ -110,7 +115,7 @@ nats sub "bluesky.enriched.dev.>"
 
 1. **Mock Ingest** → publishes test messages to `bluesky-posts-dev` stream with subject `bluesky.posts.dev.*`
 2. **Firehose Ingest** → consumes from external firehose and publishes to `bluesky-posts-dev` stream with subject `bluesky.posts.dev.*`
-3. **Stream Processor** → consumes from `bluesky-posts-dev` stream, adds sentiment/topic analysis, publishes to `bluesky-posts-enriched-dev` stream with subject `bluesky.enriched.dev.*`
+3. **Stream Processors (0 & 1)** → consume from `bluesky-posts-dev` stream (load-balanced), add sentiment/topic analysis, publish to `bluesky-posts-enriched-dev` stream with subject `bluesky.enriched.dev.*`
 4. **Sentiment Web UI** → subscribes to enriched stream and displays real-time updates
 
 ## Local Development
@@ -140,7 +145,8 @@ docker compose logs -f
 
 # View specific service logs
 docker compose logs -f nats-firehose-ingest
-docker compose logs -f nats-stream-processor
+docker compose logs -f nats-stream-processor-0
+docker compose logs -f nats-stream-processor-1
 docker compose logs -f mock-ingest
 docker compose logs -f bsky-sentiment-web
 ```
@@ -371,7 +377,7 @@ nats sub "bluesky.enriched.>"
 
 1. **Mock Ingest** → publishes test messages to `bluesky-posts` stream with subject `bluesky.posts.*`
 2. **Firehose Ingest** → consumes from external firehose and publishes to `bluesky-posts` stream with subject `bluesky.posts.*`
-3. **Stream Processor** → consumes from `bluesky-posts` stream, adds sentiment/topic analysis, publishes to `bluesky-posts-enriched` stream with subject `bluesky.enriched.*`
+3. **Stream Processors (0 & 1)** → consume from `bluesky-posts` stream (load-balanced), add sentiment/topic analysis, publish to `bluesky-posts-enriched` stream with subject `bluesky.enriched.*`
 4. **Sentiment Web UI** → subscribes to enriched stream and displays real-time updates
 
 ## GKE Cluster Details
@@ -390,6 +396,7 @@ nats sub "bluesky.enriched.>"
 - **Disk**: 50GB standard persistent disk
 - **Taint**: `dedicated=ml:NoSchedule`
 - **Autoscaling**: Enabled (0-6 nodes)
+- **GCFS**: Enabled for image streaming
 
 To deploy to ML pool, add toleration and node selector:
 ```yaml
@@ -494,9 +501,9 @@ The cluster uses **private nodes** to save on external IP quota:
 ## Local Development Issues
 
 1. **Services not connecting to NATS**: Check that NATS is healthy before dependent services start
-2. **Port conflicts**: The unified compose uses different ports (8081, 8082) to avoid conflicts
-3. **Model download**: Stream processor downloads AI models on first run, which may take time
-4. **Memory usage**: Sentiment analysis requires adequate memory allocation
+2. **Port conflicts**: The unified compose uses different ports (8081, 8082, 8083) to avoid conflicts
+3. **Model download**: Stream processors download AI models on first run, which may take time
+4. **Memory usage**: Sentiment analysis requires adequate memory allocation (3GB per processor)
 
 ## GKE Deployment Issues
 

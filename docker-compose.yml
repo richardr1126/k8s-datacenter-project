@@ -35,16 +35,17 @@ services:
       timeout: 10s
       retries: 3
 
-  nats-stream-processor-topics:
+  # NATS Stream Processor (Sentiment Analysis)
+  nats-stream-processor-0:
     build:
-      context: ./nats-stream-processor-topics
+      context: ./nats-stream-processor
       dockerfile: Dockerfile
-    container_name: nats-stream-processor-topics
+    container_name: nats-stream-processor-0
     depends_on:
       - nats
       - nats-firehose-ingest
     env_file:
-      - ./nats-stream-processor-topics/.env.local
+      - ./nats-stream-processor/.env.local
     environment:
       NATS_URL: "nats://nats:4222"
     ports:
@@ -55,20 +56,19 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '12'
-          memory: 12G
+          cpus: '3'
+          memory: 3G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
-      retries: 3 
-
-  # NATS Stream Processor (Sentiment Analysis)
-  nats-stream-processor:
+      retries: 3
+  
+  nats-stream-processor-1:
     build:
       context: ./nats-stream-processor
       dockerfile: Dockerfile
-    container_name: nats-stream-processor
+    container_name: nats-stream-processor-1
     depends_on:
       - nats
       - nats-firehose-ingest
@@ -81,16 +81,16 @@ services:
     restart: unless-stopped
     volumes:
       - model_cache:/app/models
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '3'
-    #       memory: 3G
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+          memory: 3G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
-      retries: 3 
+      retries: 3
 
   # Bluesky Sentiment Web UI
   bsky-sentiment-web:
@@ -100,7 +100,8 @@ services:
     container_name: bsky-sentiment-web
     depends_on:
       - nats
-      - nats-stream-processor
+      - nats-stream-processor-0
+      - nats-stream-processor-1
     env_file:
       - ./bsky-sentiment-web/.env.local
     environment:
