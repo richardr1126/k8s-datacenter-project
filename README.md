@@ -191,9 +191,47 @@ docker compose down --rmi all
     source .venv/bin/activate
    ```
 
+4. **Create `.env.prod` files for each microservice:**
+   > **IMPORTANT:** Before running `./create-all.sh` or deploying with Helm, you must create `.env.prod` files in each microservice directory. These files contain environment variables that will be loaded into Kubernetes secrets.
+   
+   ```bash
+   # Create .env.prod in each service directory:
+   cp nats-firehose-ingest/.env.example nats-firehose-ingest/.env.prod  # Edit with your values
+   cp nats-stream-processor/.env.example nats-stream-processor/.env.prod  # Edit with your values
+   cp bsky-sentiment-web/.env.example bsky-sentiment-web/.env.prod  # Edit with your values
+   ```
+   
+   **Environment file comparisons:**
+   
+   **nats-firehose-ingest:**
+   | Variable | .env.example | .env.prod | Notes |
+   |----------|-------------|-----------|-------|
+   | `NATS_STREAM_NUM_REPLICAS` | `1` | `3` | Increased for HA in production |
+   | All others | Same as .env.prod | See .env.example | Same for dev and prod |
+   
+   **nats-stream-processor:**
+   | Variable | .env.example | .env.prod | Notes |
+   |----------|-------------|-----------|-------|
+   | `NUM_STREAM_REPLICAS` | `1` | `3` | Increased for HA in production |
+   | `SENTIMENT_MODEL_CACHE_DIR` | `./models/sentiment` | `/var/cache/models/sentiment` | Absolute path for containerized env |
+   | `TOPIC_MODEL_CACHE_DIR` | `./models/topics` | `/var/cache/models/topics` | Absolute path for containerized env |
+   | `SENTIMENT_CONFIDENCE_THRESHOLD` | `0.4` | `0.3` | Lower threshold in production for more detections |
+   | All others | Same as .env.prod | See .env.example | Same for dev and prod |
+   
+   **bsky-sentiment-web:**
+   | Variable | .env.example | .env.prod | Notes |
+   |----------|-------------|-----------|-------|
+   | `NATS_URL` | Examples provided | `nats://nats.nats.svc.cluster.local:4222` | K8s DNS for production |
+   | `OUTPUT_STREAM` | Examples provided | `bluesky-posts-enriched` | Match processor output stream |
+   | `OUTPUT_SUBJECT` | Examples provided | `bluesky.enriched` | Match processor output subject |
+   
+   If these files are missing, `./create-all.sh` and the individual `./create-secrets.sh` scripts will fail.
+
 ## Create a GKE Cluster
 
 ### Quick Setup (Automated)
+
+**Before running:** Ensure all `.env.prod` files are created in each microservice directory (see [Prerequisites](#prerequisites)).
 
 Deploy the entire pipeline with a single command:
 
@@ -206,8 +244,8 @@ This script automatically:
 1. Creates the GKE cluster with Cloud NAT setup
 2. Connects to the cluster
 3. Installs all Kubernetes applications (NATS, Prometheus, CockroachDB, etc.)
-4. Deploys all microservices (firehose ingest, stream processor, sentiment web UI)
-5. Creates required secrets
+4. Creates Kubernetes secrets from `.env.prod` files in each microservice
+5. Deploys all microservices (firehose ingest, stream processor, sentiment web UI)
 
 ### Manual Setup
 
@@ -319,10 +357,13 @@ helm upgrade --install nats-firehose-ingest ./nats-firehose-ingest \
 
 ## Create Secrets Script Options
 
-The `create-secrets.sh` script supports several options:
+Each microservice has a `create-secrets.sh` script in its `charts/` directory. These scripts read from `.env.prod` files and create Kubernetes secrets.
+
+> **REQUIRED:** Each microservice must have a `.env.prod` file in its root directory for the secrets script to work.
 
 ```bash
 # Basic usage (uses .env.prod by default)
+cd nats-firehose-ingest/charts
 bash create-secrets.sh
 
 # Specify custom namespace
@@ -343,6 +384,22 @@ bash create-secrets.sh \
   --secret-name app-secrets \
   --env-file .env.production \
   --dry-run
+```
+
+**Example for each microservice:**
+
+```bash
+# Firehose Ingest
+cd nats-firehose-ingest/charts
+bash create-secrets.sh  # requires nats-firehose-ingest/.env.prod
+
+# Stream Processor
+cd nats-stream-processor/charts
+bash create-secrets.sh  # requires nats-stream-processor/.env.prod
+
+# Sentiment Web UI
+cd bsky-sentiment-web/charts
+bash create-secrets.sh  # requires bsky-sentiment-web/.env.prod
 ```
 
 ## Scale the Cluster
