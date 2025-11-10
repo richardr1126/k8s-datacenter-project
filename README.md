@@ -631,6 +631,3 @@ The GKE cluster includes several security optimizations:
 - Uses GKE defaults for RBAC and security policies
 - Latest Kubernetes version
 - Cost management enabled for usage tracking
-</content>
-<parameter name="line_count">
-651
