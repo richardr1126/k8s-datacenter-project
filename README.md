@@ -249,8 +249,6 @@ This script automatically:
 
 ### Manual Setup
 
-If you prefer to set up services individually:
-
 ```bash
 cd gke-cluster
 
