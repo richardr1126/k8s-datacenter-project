@@ -53,11 +53,11 @@ services:
     restart: unless-stopped
     volumes:
       - model_cache:/app/models
-    deploy:
-      resources:
-        limits:
-          cpus: '3'
-          memory: 3G
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '3'
+    #       memory: 3G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
