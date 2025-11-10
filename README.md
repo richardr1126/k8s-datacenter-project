@@ -181,25 +181,49 @@ docker compose down --rmi all
    gcloud services enable container.googleapis.com compute.googleapis.com
    ```
 
-3. **Install Python dependencies:**
+3. **Install uv package manager and Python dependencies:**
    ```bash
-   cd gke-cluster
-   pip install -e .
+   # uv is the recommended way to install dependencies
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    
+    # Install dependencies and run
+    uv sync --frozen
+    source .venv/bin/activate
    ```
 
 ## Create a GKE Cluster
+
+### Quick Setup (Automated)
+
+Deploy the entire pipeline with a single command:
+
+```bash
+# Run the complete setup
+./create-all.sh
+```
+
+This script automatically:
+1. Creates the GKE cluster with Cloud NAT setup
+2. Connects to the cluster
+3. Installs all Kubernetes applications (NATS, Prometheus, CockroachDB, etc.)
+4. Deploys all microservices (firehose ingest, stream processor, sentiment web UI)
+5. Creates required secrets
+
+### Manual Setup
+
+If you prefer to set up services individually:
 
 ```bash
 cd gke-cluster
 
 # Create cluster with default name and spot instances
-python gke-cluster.py create
+uv run gke-cluster.py create
 
 # Create cluster with custom name
-python gke-cluster.py create --name my-cluster
+uv run gke-cluster.py create --name my-cluster
 
 # Create cluster without spot instances (more expensive but more reliable)
-python gke-cluster.py create --no-spot
+uv run gke-cluster.py create --no-spot
 ```
 
 ## Connect to Your Cluster
@@ -325,29 +349,29 @@ bash create-secrets.sh \
 
 ```bash
 # Scale all pools to 5 nodes each
-python gke-cluster.py scale --name cost-optimized-cluster --nodes 5
+uv run gke-cluster.py scale --name cost-optimized-cluster --nodes 5
 
 # Scale down to 0 nodes (save money, only pay for control plane)
-python gke-cluster.py scale --nodes 0
+uv run gke-cluster.py scale --nodes 0
 
 # Scale specific pool only
-python gke-cluster.py scale --name cost-optimized-cluster --nodes 3 --pool ml-pool
+uv run gke-cluster.py scale --name cost-optimized-cluster --nodes 3 --pool ml-pool
 ```
 
 ## Delete the Cluster
 
 ```bash
 # Delete cluster and all associated resources (PVCs, Cloud NAT, Cloud Router)
-python gke-cluster.py delete
+uv run gke-cluster.py delete
 
 # Delete specific cluster
-python gke-cluster.py delete --name my-cluster
+uv run gke-cluster.py delete --name my-cluster
 ```
 
 ## List Clusters
 
 ```bash
-python gke-cluster.py list
+uv run gke-cluster.py list
 ```
 
 ## Cloud Service Endpoints
